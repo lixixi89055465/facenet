@@ -1,2 +1,3 @@
 # ignore map, miou, datasets
 .idea
+datasets
