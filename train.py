@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
+
 # Benchmark模式会提升计算速度，但是由于计算中有随机性，每次网络前馈结果略有差异。如果想要避免这种结果波动
 torch.backends.cudnn.deterministic = True
 # 设置为True，说明设置为使用使用非确定性算法：
@@ -14,6 +15,7 @@ import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from utils.utils import get_num_classes
+from nets.facenet import Facenet
 
 if __name__ == '__main__':
     # -------------------------------#
@@ -156,7 +158,7 @@ if __name__ == '__main__':
         dist.init_process_group(backend='nccl')
         local_rank = int(os.environ['LOCAL_RANK'])
         rank = int(os.environ['RNAK'])
-        device = torch.device('cuda', local_rank)
+        device = torch.device("cuda", local_rank)
         if local_rank == 0:
             print(f'[{os.getpid()}] (rank={rank} , local_rank={local_rank} training....')
             print('GPU Device Count :', ngpus_per_node)
@@ -164,13 +166,12 @@ if __name__ == '__main__':
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         local_rank = 0
         rank = 0
-    num_classes=get_num_classes(annotation_path)
-    #---------------------------------#
+    num_classes = get_num_classes(annotation_path)
+    # ---------------------------------#
     #   载入模型并加载预训练权重
-    #---------------------------------#
+    # ---------------------------------#
 
-
-
+    model = Facenet(backbone=backbone, num_classes=num_classes, pretrained=pretrained)
     if model_path != '':
         # ------------------------------------------------------#
         #   权值文件请看README，百度网盘下载
@@ -181,3 +182,7 @@ if __name__ == '__main__':
         #   根据预训练权重的Key和模型的Key进行加载
         # ------------------------------------------------------#
         model_dict = model.state_dict()
+        pretrained_dict = torch.load(model_path, map_location=device)
+        load_key, no_load_key, temp_dict = [], [], {}
+        for k, v in pretrained_dict.items():
+            pass

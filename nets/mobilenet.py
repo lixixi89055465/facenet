@@ -5,21 +5,21 @@
 # @File : mobilenet.py
 # @Software: PyCharm 
 # @Comment :
-from torch import nn
+import torch.nn as nn
 
 
 def conv_bn(inp, oup, stride=1):
     return nn.Sequential(
         nn.Conv2d(inp, oup, kernel_size=3, stride=stride, padding=1, bias=False),
         nn.BatchNorm2d(oup),
-        nn.Relu6()
+        nn.ReLU6()
     )
 
 
 def conv_dw(inp, oup, stride=1):
     return nn.Sequential(
-        nn.Conv2d(inp, inp, kernel_size=3, stride=1, padding=1, bias=False),
-        nn.BatchNorm2d(),
+        nn.Conv2d(inp, oup, kernel_size=3, stride=1, padding=1, bias=False),
+        nn.BatchNorm2d(oup),
         nn.ReLU6(),
 
         nn.Conv2d(inp, oup, kernel_size=1, stride=1, padding=0, bias=False),
@@ -45,5 +45,32 @@ class MobileNetV1(nn.Module):
         )
         self.stage2 = nn.Sequential(
             # 20,20,256->10,10,512
-
+            conv_dw(256, 512, 2),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
         )
+        self.stage3 = nn.Sequential(
+            conv_dw(512, 1024, stride=2),
+            conv_dw(1024, 1024, 1)
+        )
+        self.avg = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(1024, 1000)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.normal_(m.weight, 0, 0.1)
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x = self.stage1(x)
+        x = self.stage2(x)
+        x = self.stage3(x)
+        x = self.avg(x)
+        # x=self.model(x)
+        x = x.view(-1, 1024)
+        x = self.fc(x)
+        return x

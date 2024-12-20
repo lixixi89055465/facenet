@@ -1,3 +1,4 @@
 # ignore map, miou, datasets
 .idea
 datasets
+model_data
