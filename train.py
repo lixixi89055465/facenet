@@ -39,7 +39,6 @@ def triple_loss(alpha=.2):
 
     return _triplet_loss
 
-    return _triplet_loss
 
 
 if __name__ == '__main__':
