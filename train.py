@@ -40,7 +40,6 @@ def triple_loss(alpha=.2):
     return _triplet_loss
 
 
-
 if __name__ == '__main__':
     # -------------------------------#
     #   是否使用Cuda
@@ -224,9 +223,17 @@ if __name__ == '__main__':
             print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
             print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
     loss = triple_loss()
-    #----------------------#
+    # ----------------------#
     #   记录Loss
-    #----------------------#
-    if local_rank==0:
-        loss_history=Losshistory(save_dir,model,input_shape=input_shape)
-
+    # ----------------------#
+    if local_rank == 0:
+        loss_history = LossHistory(save_dir, model, input_shape=input_shape)
+    else:
+        loss_history = None
+    # ------------------------------------------------------------------#
+    #   torch 1.2不支持amp，建议使用torch 1.7.1及以上正确使用fp16
+    #   因此torch1.2这里显示"could not be resolve"
+    # ------------------------------------------------------------------#
+    if fp16:
+        from torch.cuda.amp import GradScalar as GradScaler
+        scaler = GradScaler()
