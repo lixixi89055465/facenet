@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from utils.utils import get_num_classes
 from nets.facenet import Facenet
 from utils.callback import LossHistory
+from utils.dataloader import FacenetDataset
 
 
 def triple_loss(alpha=.2):
@@ -235,5 +236,35 @@ if __name__ == '__main__':
     #   因此torch1.2这里显示"could not be resolve"
     # ------------------------------------------------------------------#
     if fp16:
-        from torch.cuda.amp import GradScalar as GradScaler
+        from torch.cuda.amp import GradScaler as GradScaler
+
         scaler = GradScaler()
+    else:
+        scaler = None
+    model_train = model.train()
+    # ----------------------------#
+    #   多卡同步Bn
+    # ----------------------------#
+    if sync_bn and ngpus_per_node > 1 and distributed:
+        model_train = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model_train)
+    elif sync_bn:
+        print('Sync_bn is not support in one gpu or not distributed')
+    if Cuda:
+        if distributed:
+            model_train = model_train.cuda(local_rank)
+            model_train = torch.nn.parallel.DistributedDataParallel(
+                model_train,
+                device_ids=[local_rank],
+                find_unused_parameters=True
+            )
+        else:
+            model_train = torch.nn.DataParallel(model)
+            cudnn.benchmark = True
+            model_train = model_train.cuda()
+    # ---------------------------------#
+    #   LFW估计
+    # ---------------------------------#
+    # LFW_loader = torch.utils.data.DataLoader(
+    #     LFWDataset(dir=lfw_dir_path, lfw_pairs_path, image_size=input_shape),
+    #     batch_size=32, shuffle=True) if lfw_eval_flag else None
+
