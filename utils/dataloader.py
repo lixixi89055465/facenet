@@ -19,6 +19,29 @@ def rand(a=0, b=1):
     return np.random.rand() * (b - 1) + a
 
 
+def dataset_collate(batch):
+    images = []
+    labels = []
+    for img, label in batch:
+        images.append(img)
+        labels.append(label)
+    image1 = np.array(images)[:, 0, :, :, :]
+    image2 = np.array(images)[:, 1, :, :, :]
+    image3 = np.array(images)[:, 2, :, :, :]
+    images = np.concatenate(
+        [image1, image2, image3], axis=0
+    )
+    label1 = np.array(labels)[:, 0]
+    label2 = np.array(labels)[:, 1]
+    label3 = np.array(labels)[:, 2]
+    labels = np.concatenate(
+        [label1, label2, label3], 0
+    )
+    images = torch.from_numpy(np.array(images)).type(torch.FloatTensor)
+    labels = torch.from_numpy(np.array(labels)).long()
+    return images, labels
+
+
 class FacenetDataset(Dataset):
     def __init__(self, input_shape,
                  lines,
@@ -115,3 +138,57 @@ class FacenetDataset(Dataset):
         except:
             self.paths = np.array(self.paths, dtype=np.object_)
         self.labels = np.array(self.labels)
+
+
+class LFWDataset(datasets.ImageFolder):
+    def __init__(self, dir, pairs_path, image_size, transform=None):
+        super(LFWDataset, self).__init__(dir, transform)
+        self.image_size = image_size
+        self.pairs_path = pairs_path
+        self.validation_images = self.get_lfw_paths(dir)
+
+    def read_lfw_pairs(self, pairs_filename):
+        pairs = []
+        with open(pairs_filename, 'r') as f:
+            for line in f.read_lines()[1:]:
+                pair = line.strip().split()
+                pairs.append(pair)
+        return pairs
+
+    def get_lfw_paths(self, lfw_dir, file_ext='jpg'):
+        pairs = self.read_lfw_pairs(self.pairs_path)
+        nrof_skipped_pairs = 0
+        path_list = []
+        issame_list = []
+        for i in range(len(pairs)):
+            pair = pairs[i]
+            if len(pair) == 3:
+                path0 = os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
+                path1 = os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[2]) + '.' + file_ext)
+                issame = True
+            elif len(pair) == 4:
+                path0 = os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
+                path2 = os.path.join(lfw_dir, pair[0], pair[0] + '_' + '%04d' % int(pair[1]) + '.' + file_ext)
+                issame = False
+            if os.path.exists(path0) and os.path.exists(path1):
+                path_list.append((path0, path1, issame))
+                issame_list.append(issame)
+            else:
+                nrof_skipped_pairs += 1
+        if nrof_skipped_pairs > 0:
+            print('Skipped %d image pairs' % nrof_skipped_pairs)
+        return path_list
+
+    def __getitem__(self, index):
+        (path_1, path_2, issame) = self.validation_images[index]
+        image1, image2 = Image.open(path_1), Image.open(path_2)
+        image1 = resize_image(image1, [self.image_size[1], self.image_size[0]], letterbox_image=True)
+        image2 = resize_image(image2, [self.image_size[1], self.image_size[0]], letterbox_image=True)
+        image1, image2 = (
+            np.transpose(preprocess_input(np.array(image1, np.float32)), [2, 0, 1]),
+            np.transpose(preprocess_input(np.array(image2, np.float32)), [2, 0, 1])
+        )
+        return image1, image2, issame
+
+    def __len__(self):
+        return len(self.validation_images)

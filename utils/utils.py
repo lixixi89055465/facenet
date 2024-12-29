@@ -5,7 +5,10 @@
 # @File : utils.py
 # @Software: PyCharm 
 # @Comment :
+import random
+
 import numpy as np
+import torch
 from PIL import Image
 
 
@@ -46,7 +49,23 @@ def resize_image(image, size, letterbox_image):
         image = image.resize((nw, nh), Image.BICUBIC)
         new_image = Image.new('RGB', size, (128, 128, 128))
     else:
-        new_image=image.resize((w,h),Image.BICUBIC)
+        new_image = image.resize((w, h), Image.BICUBIC)
     return new_image
 
+
+def show_config(**kwargs):
+    print('COnfigurations:')
+    print('-' * 70)
+    print('|%25s | %40s |' % ('keys', 'values'))
+    print('-' * 70)
+    for key, value in kwargs.items():
+        print('|%25s | %40s|' % (str(key), str(value)))
+    print('-' * 70)
+
+
+def worker_init_fn(worker_id, rank, seed):
+    worker_seed = rank + seed
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
+    torch.manual_seed(worker_seed)
 
