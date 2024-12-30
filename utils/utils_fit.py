@@ -9,6 +9,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.utils import get_lr
 
 
 def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
@@ -60,3 +61,20 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
                 scaler.scale(_loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
+            with torch.no_grad():
+                accuracy = torch.mean(
+                    (torch.argmax(F.softmax(outputs2, dim=-1), dim=-1) == labels)
+                    .type(torch.FloatTensor)
+                )
+            total_triple_loss += _triple_loss.item()
+            total_CE_loss += _CE_loss.item()
+            total_accuracy += accuracy.item()
+            if local_rank == 0:
+                pbar.set_postfix(
+                    **{
+                        'total_triple_loss': total_triple_loss / (iteration + 1),
+                        'total_CE_loss': total_CE_loss / (iteration + 1),
+                        'accuracy': total_accuracy / (iteration + 1),
+                        'lr': get_lr(optimizer)
+                    }
+                )

@@ -12,6 +12,11 @@ import torch
 from PIL import Image
 
 
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+
 def cvtColor(image):
     if len(np.shape(image)) == 3 and np.shape(image)[2] == 3:
         return image
@@ -68,4 +73,3 @@ def worker_init_fn(worker_id, rank, seed):
     random.seed(worker_seed)
     np.random.seed(worker_seed)
     torch.manual_seed(worker_seed)
-
