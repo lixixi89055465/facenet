@@ -5,11 +5,14 @@
 # @File : utils_fit.py
 # @Software: PyCharm
 # @Comment :
+import os
 from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from utils.utils import get_lr
+import numpy as np
+from utils.utils_metrics import evaluate
 
 
 def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
@@ -77,4 +80,53 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
                         'accuracy': total_accuracy / (iteration + 1),
                         'lr': get_lr(optimizer)
                     }
+                )
+                pbar.update(1)
+        if lfw_eval_flag:
+            print('开始进行LFW数据集的验证。')
+            labels, distances = [], []
+            for _, (data_a, data_p, label) in enumerate(test_loader):
+                with torch.no_grad():
+                    data_a, data_p = data_a.type(torch.FloatTensor), data_p.type(torch.FloatTensor)
+                    if cuda:
+                        data_a, data_p = data_a.cuda(local_rank), data_p.cuda(local_rank)
+                    out_a, out_p = model_train(data_a), model_train(data_p)
+                    dists = torch.sqrt(torch.sum((out_a - out_p) ** 2, 1))
+                distances.append(dists.data.cpu().numpy())
+                labels.append(label.data.cpu().numpy())
+            labels = np.array(
+                [
+                    sublabel for label in labels for sublabel in label
+                ]
+            )
+            distances = np.array(
+                [
+                    subdist for dist in distances for subdist in dist
+                ]
+            )
+            _, _, accuracy, _, _, _, _ = evaluate(distances, labels)
+
+        if local_rank == 0:
+            pbar.close()
+            print('Finish Validation')
+            if lfw_eval_flag:
+                print('LFW_accuracy :%2.5f +- %2.5f' % (np.mean(accuracy), np.std(accuracy)))
+            loss_history.append_loss(
+                epoch,
+                np.mean(accuracy) if lfw_eval_flag else total_accuracy / epoch_step,
+                (total_triple_loss + total_CE_loss) / epoch_step,
+                (val_total_triple_loss + val_total_CE_loss) / epoch_step_val
+            )
+            print('Epoch:' + str(epoch + 1) + '/' + str(Epoch))
+            print('Total Loss: %.4f' % ((total_triple_loss + total_CE_loss) / epoch_step))
+            if (epoch + 1) % save_period == 0 or epoch + 1 == Epoch:
+                torch.save(
+                    model.state_dict(),
+                    os.path.join(
+                        save_dir,
+                        'ep%03d -loss %.3f-val_loss%.3f.pth' % ((epoch + 1),
+                                                                (total_triple_loss + total_CE_loss) / epoch_step,
+                                                                (
+                                                                            val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
+                    )
                 )

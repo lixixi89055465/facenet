@@ -16,7 +16,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from utils.utils import get_num_classes, show_config
 from nets.facenet import Facenet
-from nets.facenet_training import set_optimizer_lr
+from nets.facenet_training import set_optimizer_lr, get_lr_scheduler
 
 from utils.callback import LossHistory
 from utils.dataloader import FacenetDataset, LFWDataset, dataset_collate
@@ -332,6 +332,13 @@ if __name__ == '__main__':
         # ---------------------------------------#
         #   获得学习率下降的公式
         # ---------------------------------------#
+        lr_scheduler_func = get_lr_scheduler(lr_decay_type,
+                                             Init_lr_fit,
+                                             Min_lr_fit,
+                                             Epoch)
+        # ---------------------------------------#
+        #   判断每一个世代的长度
+        # ---------------------------------------#
         epoch_step = num_train // batch_size
         epoch_step_val = num_val // batch_size
         if epoch_step == 0 or epoch_step_val == 0:
@@ -389,7 +396,27 @@ if __name__ == '__main__':
         for epoch in range(Init_Epoch, Epoch):
             if distributed:
                 train_sampler.set_epoch(epoch)
-            # set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
-            # fit_one_epoch(
-            #     model_train,
-            # )
+            set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
+            fit_one_epoch(
+                model_train,
+                loss_history,
+                loss,
+                optimizer,
+                epoch,
+                epoch_step,
+                epoch_step_val,
+                gen,
+                gen_val,
+                Epoch,
+                Cuda,
+                LFW_loader,
+                batch_size // 3,
+                lfw_eval_flag,
+                fp16,
+                scaler,
+                save_period,
+                save_dir,
+                local_rank
+            )
+        if local_rank == 0:
+            loss_history.writer.close()
