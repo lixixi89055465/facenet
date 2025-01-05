@@ -50,7 +50,8 @@ if __name__ == '__main__':
     #   是否使用Cuda
     #   没有GPU可以设置成False
     # -------------------------------#
-    Cuda = True
+    # Cuda = True
+    Cuda = False
     # ----------------------------------------------#
     #   Seed    用于固定随机种子
     #           使得每次独立训练都可以获得一样的结果
@@ -399,6 +400,7 @@ if __name__ == '__main__':
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
             fit_one_epoch(
                 model_train,
+                model,
                 loss_history,
                 loss,
                 optimizer,

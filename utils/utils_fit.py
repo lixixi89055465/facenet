@@ -46,7 +46,7 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
             if not fp16:
                 outputs1, outputs2 = model_train(images, 'train')
                 _triple_loss = loss(outputs1, Batch_size)
-                _CE_loss = nn.NLLLoss()(F.log_sof)
+                _CE_loss = nn.NLLLoss()(F.log_softmax(outputs2, dim=-1), labels)
                 _loss = _triple_loss + _CE_loss
 
                 _loss.backward()
@@ -127,6 +127,6 @@ def fit_one_epoch(model_train, model, loss_history, loss, optimizer,
                         'ep%03d -loss %.3f-val_loss%.3f.pth' % ((epoch + 1),
                                                                 (total_triple_loss + total_CE_loss) / epoch_step,
                                                                 (
-                                                                            val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
+                                                                        val_total_triple_loss + val_total_CE_loss) / epoch_step_val)
                     )
                 )
