@@ -131,8 +131,8 @@ class FacenetDataset(Dataset):
     def load_dataset(self):
         for path in self.lines:
             path_split = path.split(';')
-            self.paths.append(path_split[1].split()[0])
-            self.labels.append(int(path_split[1]))
+            self.paths.append(path_split[1].split()[0].strip())
+            self.labels.append(int(path_split[0].strip()))
         try:
             self.paths = np.array(self.paths, dtype=np.object)
         except:
@@ -150,7 +150,7 @@ class LFWDataset(datasets.ImageFolder):
     def read_lfw_pairs(self, pairs_filename):
         pairs = []
         with open(pairs_filename, 'r') as f:
-            for line in f.read_lines()[1:]:
+            for line in f.readlines()[1:]:
                 pair = line.strip().split()
                 pairs.append(pair)
         return pairs

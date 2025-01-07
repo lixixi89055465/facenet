@@ -3,8 +3,11 @@ pip install torch==1.7.1+cpu torchvision==0.8.2+cpu torchaudio==0.7.2 -f https:/
 
 #for cpu
 
-#pip install torch==1.7.1 torchvision tensorboard matplotlib scipy scikit-learn tqdm
+#
+pip install torch==1.7.1 torchvision tensorboard matplotlib scipy scikit-learn tqdm
 pip install torch==1.7.0 torchvision==0.8.1
 git clone git://github.com/NVIDIA/apex
 cd apex
 pip install -v --no-cache-dir ./
+
+pip install --upgrade  torch

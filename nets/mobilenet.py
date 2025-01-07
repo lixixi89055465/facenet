@@ -18,8 +18,8 @@ def conv_bn(inp, oup, stride=1):
 
 def conv_dw(inp, oup, stride=1):
     return nn.Sequential(
-        nn.Conv2d(inp, oup, kernel_size=3, stride=1, padding=1, bias=False),
-        nn.BatchNorm2d(oup),
+        nn.Conv2d(inp, inp, kernel_size=3, stride=1, padding=1, bias=False),
+        nn.BatchNorm2d(inp),
         nn.ReLU6(),
 
         nn.Conv2d(inp, oup, kernel_size=1, stride=1, padding=0, bias=False),
