@@ -16,7 +16,7 @@ import numpy as np
 
 
 def rand(a=0, b=1):
-    return np.random.rand() * (b - 1) + a
+    return np.random.rand() * (b - a) + a
 
 
 def dataset_collate(batch):
