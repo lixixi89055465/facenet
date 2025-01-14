@@ -16,33 +16,34 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from utils.utils import get_num_classes, show_config
 from nets.facenet import Facenet
-from nets.facenet_training import set_optimizer_lr, get_lr_scheduler
+from nets.facenet_training import (get_lr_scheduler, set_optimizer_lr,
+                                   triplet_loss, weights_init)
 
 from utils.callback import LossHistory
 from utils.dataloader import FacenetDataset, LFWDataset, dataset_collate
 from utils.utils import worker_init_fn
 from utils.utils_fit import fit_one_epoch
 
-
-def triple_loss(alpha=.2):
-    def _triplet_loss(y_pred, Batch_size):
-        anchor, positive, negative = (y_pred[:int(batch_size)],
-                                      y_pred[int(Batch_size):int(2 * Batch_size)],
-                                      y_pred[int(2 * Batch_size):])
-        pos_dist = torch.sqrt(torch.sum(torch.pow(anchor - positive, 2), axis=-1))
-        neg_dist = torch.sqrt(torch.sum(torch.pow(anchor - negative, 2), axis=-1))
-
-        keep_all = (neg_dist - pos_dist < alpha).cpu().numpy().flatten()
-        hard_triples = np.where(keep_all == 1)
-
-        pos_dist = pos_dist[hard_triples]
-        neg_dist = neg_dist[hard_triples]
-
-        basic_loss = pos_dist - neg_dist + alpha
-        loss = torch.sum(basic_loss) / torch.max(torch.tensor(1), torch.tensor(len(hard_triples[0])))
-        return loss
-
-    return _triplet_loss
+#
+# def triple_loss(alpha=.2):
+#     def _triplet_loss(y_pred, Batch_size):
+#         anchor, positive, negative = (y_pred[:int(batch_size)],
+#                                       y_pred[int(Batch_size):int(2 * Batch_size)],
+#                                       y_pred[int(2 * Batch_size):])
+#         pos_dist = torch.sqrt(torch.sum(torch.pow(anchor - positive, 2), axis=-1))
+#         neg_dist = torch.sqrt(torch.sum(torch.pow(anchor - negative, 2), axis=-1))
+#
+#         keep_all = (neg_dist - pos_dist < alpha).cpu().numpy().flatten()
+#         hard_triples = np.where(keep_all == 1)
+#
+#         pos_dist = pos_dist[hard_triples]
+#         neg_dist = neg_dist[hard_triples]
+#
+#         basic_loss = pos_dist - neg_dist + alpha
+#         loss = torch.sum(basic_loss) / torch.max(torch.tensor(1), torch.tensor(len(hard_triples[0])))
+#         return loss
+#
+#     return _triplet_loss
 
 
 if __name__ == '__main__':
@@ -228,7 +229,7 @@ if __name__ == '__main__':
             print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
             print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
             print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
-    loss = triple_loss()
+    loss = triplet_loss()
     # ----------------------#
     #   记录Loss
     # ----------------------#
