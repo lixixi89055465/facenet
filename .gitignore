@@ -6,3 +6,5 @@ runs
 minist_train
 lfw
 logs
+__pycache__
+_pycache_
